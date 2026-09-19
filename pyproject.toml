@@ -1,0 +1,40 @@
+[project]
+name = "pdf-unlock"
+version = "0.1.0"
+description = "Turn password-locked PDFs (bank and credit card statements) into plain ones, so automations and AI tools can read them."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Pruthvi Shetty" }]
+keywords = ["pdf", "decrypt", "password", "bank-statement", "cli"]
+
+dependencies = [
+    "pikepdf>=9.0",
+    "keyring>=25.0",
+]
+
+[project.scripts]
+pdf-unlock = "pdf_unlock_cli.main:main"
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.6"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# One distribution, two packages. The engine knows nothing about the CLI, so the
+# future web/api/mcp surfaces can import it without dragging argparse along.
+[tool.hatch.build.targets.wheel]
+packages = ["engine/src/pdf_unlock_engine", "cli/src/pdf_unlock_cli"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["engine/src", "cli/src"]
+
+[tool.ruff]
+line-length = 100
+src = ["engine/src", "cli/src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
