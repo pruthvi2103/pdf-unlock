@@ -223,10 +223,12 @@ def test_config_output_dir_is_used_when_no_flag_is_given(make_pdf, tmp_path, cap
     assert (dest / "stmt.pdf").is_file()
 
 
-def test_shell_init_defines_the_alias(capsys):
+def test_shell_init_defines_the_output_dir_helper(capsys):
     assert run("shell-init") == 0
     out = capsys.readouterr().out
-    assert "unlock()" in out and "pdf-unlock unlock" in out
+    # The binary is already called pdf-unlock, so the snippet must not shadow it.
+    assert "pdf-unlocked()" in out
+    assert "\nunlock()" not in out
 
 
 def test_no_arguments_prints_help(capsys):

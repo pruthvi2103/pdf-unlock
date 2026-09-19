@@ -99,7 +99,7 @@ def _unlock_one(path: Path, cfg: Config, args, results: list[dict]) -> int:
     info = inspect_pdf(path)
 
     if not info.encrypted:
-        ui.info(f"{ui.bold(path.name)} is not encrypted — nothing to do.")
+        ui.info(f"{ui.bold(path.name)} is not encrypted, nothing to do.")
         results.append({"source": str(path), "status": "not_encrypted"})
         return EXIT_OK
 
@@ -283,7 +283,7 @@ def _register(cfg: Config, bucket: str, name: str) -> None:
 def cmd_identity(args, cfg: Config) -> int:
     if args.identity_action == "list":
         if not cfg.identity_fields:
-            ui.info("no identity fields yet — try `pdf-unlock identity set name`")
+            ui.info("no identity fields yet. Try `pdf-unlock identity set name`")
             return EXIT_OK
         rows = []
         for name in cfg.identity_fields:
@@ -315,7 +315,7 @@ def cmd_identity(args, cfg: Config) -> int:
 def cmd_password(args, cfg: Config) -> int:
     if args.password_action == "list":
         if not cfg.password_labels:
-            ui.info("no stored passwords yet — try `pdf-unlock password set hdfc-2024`")
+            ui.info("no stored passwords yet. Try `pdf-unlock password set hdfc-2024`")
             return EXIT_OK
         rows = []
         for name in cfg.password_labels:
@@ -357,13 +357,13 @@ def cmd_family(args, cfg: Config) -> int:
 
     if action == "presets":
         print(ui.bold("Shipped presets"))
-        print(ui.dim("Starting points — confirm one with `pdf-unlock family test <name> <file>`."))
+        print(ui.dim("Starting points. Confirm one with `pdf-unlock family test <name> <file>`."))
         ui.table([(key, spec["note"]) for key, spec in sorted(PRESETS.items())])
         return EXIT_OK
 
     if action == "list":
         if not cfg.families:
-            ui.info("no families yet — try `pdf-unlock family add --preset hdfc-cc`")
+            ui.info("no families yet. Try `pdf-unlock family add --preset hdfc-cc`")
             return EXIT_OK
         for fam in cfg.families:
             print(ui.bold(fam.name) + (f"  {ui.dim(fam.note)}" if fam.note else ""))
@@ -522,7 +522,7 @@ def cmd_config(args, cfg: Config) -> int:
         from pdf_unlock_engine.config import dumps
 
         where = cfg.path or config_path()
-        ui.info(f"{where}{'' if cfg.path else ui.dim('  (not created yet — showing defaults)')}")
+        ui.info(f"{where}{'' if cfg.path else ui.dim('  (not created yet, showing defaults)')}")
         print(dumps(cfg))
         return EXIT_OK
 
@@ -575,23 +575,20 @@ def cmd_init(args, cfg: Config) -> int:
     ui.info("Next steps:")
     ui.info("  pdf-unlock family presets            # see the issuers we know")
     ui.info("  pdf-unlock family add --preset hdfc-cc")
-    ui.info("  pdf-unlock shell-init >> ~/.zshrc    # add the `unlock` alias")
+    ui.info("  pdf-unlock shell-init >> ~/.zshrc    # adds the `pdf-unlocked` helper")
     return EXIT_OK
 
 
 SHELL_SNIPPET = """
 # --- pdf-unlock -------------------------------------------------------------
-# `unlock statement.pdf` writes a password-free copy to your output directory
-# and opens it. The encrypted original is never modified.
-unlock() {
-  command pdf-unlock unlock "$@"
-}
-
-# `unlocked` jumps to (or lists) the output directory.
-unlocked() {
+# `pdf-unlock statement.pdf` writes a password-free copy to your output
+# directory and opens it. The encrypted original is never modified.
+#
+# `pdf-unlocked` jumps to that output directory, or lists the N newest files.
+pdf-unlocked() {
   local dir
-  dir="$(command pdf-unlock config show 2>/dev/null | awk -F'\\"' '/^output_dir/ {print $2}')"
-  dir="${dir/#\\~/$HOME}"
+  dir="$(command pdf-unlock config show 2>/dev/null | awk -F'\"' '/^output_dir/ {print $2}')"
+  dir="${dir/#\~/$HOME}"
   if [ -n "$1" ]; then ls -lt "$dir" | head -n "$1"; else cd "$dir" || return; fi
 }
 # ----------------------------------------------------------------------------
