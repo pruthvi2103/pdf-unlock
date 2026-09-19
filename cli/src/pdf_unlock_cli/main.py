@@ -357,8 +357,15 @@ def cmd_family(args, cfg: Config) -> int:
 
     if action == "presets":
         print(ui.bold("Shipped presets"))
-        print(ui.dim("Starting points. Confirm one with `pdf-unlock family test <name> <file>`."))
-        ui.table([(key, spec["note"]) for key, spec in sorted(PRESETS.items())])
+        print(ui.dim("Confirm one with `pdf-unlock family test <name> <file>` before trusting it."))
+        rows = []
+        for key, spec in sorted(PRESETS.items()):
+            mark = ui.green("checked") if spec.get("verified") else ui.yellow("unchecked")
+            rows.append((key, f"{spec['note']}  {ui.dim('[')}{mark}{ui.dim(']')}"))
+        ui.table(rows)
+        print()
+        ui.info("'unchecked' means the convention is plausible but untested against a real file.")
+        ui.info("Passwords are case-sensitive; if one fails, try flipping upper/lower first.")
         return EXIT_OK
 
     if action == "list":
@@ -579,7 +586,7 @@ def cmd_init(args, cfg: Config) -> int:
     return EXIT_OK
 
 
-SHELL_SNIPPET = """
+SHELL_SNIPPET = r"""
 # --- pdf-unlock -------------------------------------------------------------
 # `pdf-unlock statement.pdf` writes a password-free copy to your output
 # directory and opens it. The encrypted original is never modified.
@@ -587,7 +594,7 @@ SHELL_SNIPPET = """
 # `pdf-unlocked` jumps to that output directory, or lists the N newest files.
 pdf-unlocked() {
   local dir
-  dir="$(command pdf-unlock config show 2>/dev/null | awk -F'\"' '/^output_dir/ {print $2}')"
+  dir="$(command pdf-unlock config show 2>/dev/null | awk -F'"' '/^output_dir/ {print $2}')"
   dir="${dir/#\~/$HOME}"
   if [ -n "$1" ]; then ls -lt "$dir" | head -n "$1"; else cd "$dir" || return; fi
 }

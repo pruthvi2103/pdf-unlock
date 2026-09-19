@@ -116,43 +116,60 @@ def match_family(info: PdfInfo, families: list[Family]) -> Family | None:
     return ranked[0][0] if ranked else None
 
 
-# Starting points for issuers with well-known conventions. They are a head start,
-# not gospel -- issuers change these, so `pdf-unlock family test` before trusting one.
+# Starting points for issuers with well-known conventions. A head start, not
+# gospel: issuers change these, so run `pdf-unlock family test` before trusting one.
+#
+# Case matters, because PDF passwords are case-sensitive and there is no way to
+# cover both with a single template. Only hdfc-cc has been checked against a real
+# statement; the rest carry "verified": False and are the common convention, no
+# more than that. If one of them fails for you, try flipping upper/lower first.
+#
+# Filename rules assume the issuer's name is in the filename. Many statements are
+# named after the card instead ("4854XXXXXXXXXX00_16-09-2026.pdf"), which carries
+# no issuer at all. Add your own rule for those:
+#     pdf-unlock family add hdfc-cc --preset hdfc-cc --filename '4854*' --force
 PRESETS: dict[str, dict] = {
     "hdfc-cc": {
-        "template": "{name|alpha|lower|first:4}{dob|date:%d%m}",
+        "template": "{name|alpha|upper|first:4}{dob|date:%d%m}",
         "filename": ["*hdfc*"],
-        "note": "first 4 letters of name + DDMM of birth",
+        "note": "first 4 letters of name in CAPS + DDMM of birth",
+        "verified": True,
     },
     "icici-cc": {
-        "template": "{name|alpha|lower|first:4}{dob|date:%d%m}",
+        "template": "{name|alpha|upper|first:4}{dob|date:%d%m}",
         "filename": ["*icici*"],
-        "note": "first 4 letters of name + DDMM of birth",
+        "note": "first 4 letters of name in CAPS + DDMM of birth",
+        "verified": False,
     },
     "axis-cc": {
-        "template": "{name|alpha|lower|first:4}{dob|date:%d%m}",
+        "template": "{name|alpha|upper|first:4}{dob|date:%d%m}",
         "filename": ["*axis*"],
-        "note": "first 4 letters of name + DDMM of birth",
+        "note": "first 4 letters of name in CAPS + DDMM of birth",
+        "verified": False,
     },
     "sbi-cc": {
         "template": "{dob|date:%d%m%Y}",
         "filename": ["*sbi*", "*sbicard*"],
         "note": "DDMMYYYY of birth",
+        "verified": False,
     },
     "amex": {
-        "template": "{surname|alpha|lower|first:4}{card_last4|digits|last:4}",
+        "template": "{surname|alpha|upper|first:4}{card_last4|digits|last:4}",
         "filename": ["*amex*", "*americanexpress*"],
-        "note": "first 4 letters of surname + last 4 digits of the card",
+        "note": "first 4 letters of surname in CAPS + last 4 digits of the card",
+        "verified": False,
     },
     "kotak": {
-        "template": "{name|alpha|lower|first:4}{dob|date:%d%m}",
+        "template": "{name|alpha|upper|first:4}{dob|date:%d%m}",
         "filename": ["*kotak*"],
-        "note": "first 4 letters of name + DDMM of birth",
+        "note": "first 4 letters of name in CAPS + DDMM of birth",
+        "verified": False,
     },
     "hdfc-bank": {
         "template": "{customer_id|digits}",
         "filename": ["*hdfc*bank*", "*acct*hdfc*"],
         "note": "customer ID",
+        "verified": False,
     },
 }
 

@@ -16,7 +16,7 @@ from pdf_unlock_engine.secrets import IDENTITY, PASSWORD, set_secret
 HDFC = Family(
     name="hdfc-cc",
     match=MatchRules(filename=["*hdfc*"]),
-    template="{name|alpha|lower|first:4}{dob|date:%d%m}",
+    template="{name|alpha|upper|first:4}{dob|date:%d%m}",
 )
 AMEX = Family(
     name="amex",
@@ -73,11 +73,11 @@ def test_plan_puts_the_matching_family_first(make_pdf):
     set_secret(PASSWORD, "amex-pw", "amexsecret")
 
     cfg = Config(identity_fields=["name", "dob"], password_labels=[], families=[AMEX, HDFC])
-    info = inspect_pdf(make_pdf("HDFC_Aug.pdf", user="prut1405"))
+    info = inspect_pdf(make_pdf("HDFC_Aug.pdf", user="PRUT1405"))
     plan = build_plan(info, cfg)
 
     assert [f.name for f in plan.matched] == ["hdfc-cc"]
-    assert plan.candidates[0].password == "prut1405"
+    assert plan.candidates[0].password == "PRUT1405"
     assert plan.candidates[0].source == "family hdfc-cc"
     # The unmatched family is still worth a try, just later and labelled as such.
     assert "amexsecret" in [c.password for c in plan.candidates]
@@ -90,10 +90,10 @@ def test_no_fallback_keeps_only_matching_families(make_pdf):
     set_secret(PASSWORD, "amex-pw", "amexsecret")
 
     cfg = Config(identity_fields=["name", "dob"], families=[AMEX, HDFC])
-    info = inspect_pdf(make_pdf("HDFC_Aug.pdf", user="prut1405"))
+    info = inspect_pdf(make_pdf("HDFC_Aug.pdf", user="PRUT1405"))
     plan = build_plan(info, cfg, try_all=False)
 
-    assert [c.password for c in plan.candidates] == ["prut1405"]
+    assert [c.password for c in plan.candidates] == ["PRUT1405"]
 
 
 def test_a_missing_identity_field_warns_instead_of_exploding(make_pdf):
@@ -125,3 +125,65 @@ def test_plan_always_tries_the_empty_password_last(make_pdf):
     info = inspect_pdf(make_pdf("restricted.pdf", user="", owner="own", revision=4))
     plan = build_plan(info, cfg)
     assert [c.password for c in plan.candidates] == [""]
+
+
+# --------------------------------------------------------------------------- #
+# preset regressions
+# --------------------------------------------------------------------------- #
+
+
+def test_hdfc_preset_uppercases_the_name():
+    """Verified against a real HDFC credit card statement: the name is CAPS.
+
+    The preset originally shipped `|lower` and silently failed on every file.
+    """
+    from pdf_unlock_engine.templates import render
+
+    fam = preset("hdfc-cc")
+    identity = {"name": "Pruthvi Shetty", "dob": "1990-05-14"}
+    assert render(fam.template, identity) == "PRUT1405"
+
+
+def test_name_case_does_not_leak_into_the_password():
+    """However the name is stored, the rendered password is the same."""
+    from pdf_unlock_engine.templates import render
+
+    fam = preset("hdfc-cc")
+    rendered = {
+        render(fam.template, {"name": spelling, "dob": "1990-05-14"})
+        for spelling in ("Pruthvi Shetty", "PRUTHVI SHETTY", "pruthvi shetty", "PRUTHVI")
+    }
+    assert rendered == {"PRUT1405"}
+
+
+def test_every_preset_records_whether_it_was_verified():
+    from pdf_unlock_engine.families import PRESETS
+
+    assert all("verified" in spec for spec in PRESETS.values())
+    # Exactly one has been checked against a real statement so far.
+    assert [k for k, v in PRESETS.items() if v["verified"]] == ["hdfc-cc"]
+
+
+def test_presets_do_not_claim_files_by_card_number():
+    """A Visa number starts with 4 whoever issued it, so no preset may match on one."""
+    from pdf_unlock_engine.families import PRESETS
+
+    for key, spec in PRESETS.items():
+        for pattern in spec["filename"]:
+            assert not pattern[0].isdigit(), f"{key} claims files by card number: {pattern}"
+
+
+def test_every_preset_builds_and_renders():
+    from pdf_unlock_engine.families import PRESETS
+    from pdf_unlock_engine.templates import render
+
+    identity = {
+        "name": "Pruthvi Shetty",
+        "surname": "Shetty",
+        "dob": "1990-05-14",
+        "card_last4": "4321",
+        "customer_id": "CUST-009812",
+    }
+    for key in PRESETS:
+        fam = preset(key)
+        assert render(fam.template, identity)

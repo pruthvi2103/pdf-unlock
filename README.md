@@ -56,7 +56,7 @@ pdf-unlock family add --preset hdfc-cc
 pdf-unlock family test hdfc-cc ~/Downloads/HDFC_Statement_Aug.pdf
 ```
 
-`hdfc-cc` carries the template `{name|alpha|lower|first:4}{dob|date:%d%m}` and claims any file whose name contains `hdfc`. A statement lands, the family recognises it, the password is derived, nothing is typed.
+`hdfc-cc` carries the template `{name|alpha|upper|first:4}{dob|date:%d%m}` and claims any file whose name contains `hdfc`. A statement lands, the family recognises it, the password is derived, nothing is typed.
 
 ```console
 $ pdf-unlock ~/Downloads/HDFC_Statement_Aug.pdf
@@ -64,7 +64,15 @@ $ pdf-unlock ~/Downloads/HDFC_Statement_Aug.pdf
 · 4 pages, AES-128; password from family hdfc-cc
 ```
 
-**Run `family test` before trusting a preset.** Seven ship (`pdf-unlock family presets`) covering HDFC, ICICI, Axis, SBI, Kotak and Amex. They encode the conventional pattern for each issuer, not a guarantee. Issuers change these, and a preset that silently stops matching looks identical to a wrong password.
+**Run `family test` before trusting a preset.** Seven ship (`pdf-unlock family presets`) covering HDFC, ICICI, Axis, SBI, Kotak and Amex. Each is marked `checked` or `unchecked`: only `hdfc-cc` has been confirmed against a real statement, and the rest are the common convention and nothing stronger.
+
+**Case is the thing that bites.** PDF passwords are case-sensitive and no template can cover both, so `PRUT1405` and `prut1405` are different passwords and a wrong guess looks exactly like a wrong password. `hdfc-cc` shipped `|lower` in v0.1.0 and was wrong: HDFC uppercases the name. If a preset fails for you, flip `upper` and `lower` before anything else.
+
+**Presets match on the issuer's name in the filename, which many statements do not have.** A file called `4854XXXXXXXXXX00_16-09-2026.pdf` is named after the card. Add your own rule for those:
+
+```bash
+pdf-unlock family add hdfc-cc --preset hdfc-cc --filename '4854*' --force
+```
 
 **Matching is filename-first, and that is not laziness.** An encrypted PDF will not reveal `/Producer` or `/Author` until it is already open, by which point the password is no longer needed. Metadata rules exist (`families.py:67`) and earn their keep on owner-password-only files, but the filename is the only signal available on a locked one.
 

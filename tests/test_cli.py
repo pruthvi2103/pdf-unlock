@@ -95,7 +95,7 @@ def test_one_bad_file_does_not_stop_the_rest(make_pdf, out_dir, tmp_path):
 
 def test_the_whole_family_workflow(make_pdf, out_dir, capsys):
     # The password an HDFC statement would really carry for this person.
-    src = make_pdf("HDFC_Statement_Aug.pdf", user="prut1405")
+    src = make_pdf("HDFC_Statement_Aug.pdf", user="PRUT1405")
 
     assert run("identity", "set", "name", "Pruthvi Shetty") == 0
     assert run("identity", "set", "dob", "1990-05-14") == 0
@@ -145,14 +145,14 @@ def test_family_test_masks_by_default_and_reveals_on_request(capsys):
     capsys.readouterr()
 
     run("family", "test", "hdfc-cc")
-    assert "prut1405" not in capsys.readouterr().out
+    assert "PRUT1405" not in capsys.readouterr().out
 
     run("family", "test", "hdfc-cc", "--show")
-    assert "prut1405" in capsys.readouterr().out
+    assert "PRUT1405" in capsys.readouterr().out
 
 
 def test_family_test_against_a_real_file(make_pdf, capsys):
-    src = make_pdf("HDFC_Aug.pdf", user="prut1405")
+    src = make_pdf("HDFC_Aug.pdf", user="PRUT1405")
     run("identity", "set", "name", "Pruthvi Shetty")
     run("identity", "set", "dob", "1990-05-14")
     run("family", "add", "--preset", "hdfc-cc")
@@ -188,7 +188,7 @@ def test_family_add_will_not_silently_replace(capsys):
 
 
 def test_dry_run_explains_itself_and_writes_nothing(make_pdf, out_dir, capsys):
-    src = make_pdf("HDFC_Aug.pdf", user="prut1405")
+    src = make_pdf("HDFC_Aug.pdf", user="PRUT1405")
     run("identity", "set", "name", "Pruthvi Shetty")
     run("identity", "set", "dob", "1990-05-14")
     run("family", "add", "--preset", "hdfc-cc")
@@ -234,3 +234,16 @@ def test_shell_init_defines_the_output_dir_helper(capsys):
 def test_no_arguments_prints_help(capsys):
     assert run() != 0
     assert "usage" in capsys.readouterr().out.lower()
+
+
+def test_shell_init_emits_valid_zsh():
+    """The snippet is a raw string; a stray escape here silently breaks the shell."""
+    import subprocess
+
+    from pdf_unlock_cli.main import SHELL_SNIPPET
+
+    result = subprocess.run(
+        ["zsh", "-n"], input=SHELL_SNIPPET, text=True, capture_output=True
+    )
+    assert result.returncode == 0, result.stderr
+    assert "\\~" in SHELL_SNIPPET, "the tilde must stay escaped for zsh"

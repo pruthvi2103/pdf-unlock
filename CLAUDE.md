@@ -54,6 +54,15 @@ one-way dependency: engine never imports cli.
   called `pdf-unlock` and already treats a bare file as `unlock`, so a wrapper
   function of the same name would add nothing and would break
   `pdf-unlock inspect`. Do not reintroduce a bare `unlock()` alias.
+- **Preset case is verified, not assumed.** Every entry in `PRESETS` carries a
+  `verified` flag, and `family presets` prints it. Only `hdfc-cc` is checked
+  against a real statement (it uppercases the name; shipping `|lower` in
+  v0.1.0 was a bug). Do not flip a preset's case without a real file proving
+  it, and do not let a preset match on a card number: a Visa number starts
+  with 4 whoever issued it, so that steals other issuers' files.
+- **`SHELL_SNIPPET` is a raw string.** A stray escape there emits broken zsh
+  into someone's ~/.zshrc. `test_shell_init_emits_valid_zsh` runs `zsh -n`
+  over it.
 - **Try-all fallback beats clever matching.** With a handful of personal
   passwords, trying them all costs milliseconds and means an unconfigured bank
   usually just works. Families are the explainable path, not the only one.
